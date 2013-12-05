@@ -1,0 +1,4 @@
+writetobefore fork
+pid=3191,glob=7,var=89
+before fork
+pid=3192,glob=7,var=89
