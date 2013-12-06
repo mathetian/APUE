@@ -11,6 +11,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <signal.h>
+#include <setjmp.h>
+#include <pthread.h>
 
 #define	FILE_MODE	(S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IWUSR | S_IWOTH)
 
