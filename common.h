@@ -8,12 +8,15 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
 #include <signal.h>
 #include <setjmp.h>
 #include <pthread.h>
+#include <syslog.h>
 
 #define	FILE_MODE	(S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IWUSR | S_IWOTH)
 
