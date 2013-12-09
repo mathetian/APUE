@@ -18,6 +18,7 @@
 #include <setjmp.h>
 #include <pthread.h>
 #include <syslog.h>
+#include <termios.h>
 
 #define	FILE_MODE	(S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IWUSR | S_IWOTH)
 
