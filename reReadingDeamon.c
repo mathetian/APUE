@@ -1,12 +1,23 @@
 #include "common.h"
 
 sigset_t mask;
-extern int already_running();
 
 void reread()
 {
 
 }
+int
+lockfile(int fd)
+{
+	struct flock fl;
+
+	fl.l_type = F_WRLCK;
+	fl.l_start = 0;
+	fl.l_whence = SEEK_SET;
+	fl.l_len = 0;
+	return(fcntl(fd, F_SETLK, &fl));
+}
+
 
 void*thr_fn(void*arg)
 {
@@ -33,6 +44,32 @@ void*thr_fn(void*arg)
 	}
 	return 0;
 }
+#define LOCKFILE "/var/run/daemon.pid"
+#define LOCKMODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)
+
+
+int already_running()
+{
+	int fd;char buf[16];
+	if((fd=open(LOCKFILE,O_RDWR|O_CREAT,LOCKMODE))<0)
+	{
+		syslog(LOG_ERR,"can't open %s: %s",LOCKFILE,strerror(errno));
+		exit(1);
+	}
+	if(lockfile(fd)<0)
+	{
+		if(errno==EACCES||errno==EAGAIN)
+		{
+			close(fd);return 1;
+		}
+		syslog(LOG_ERR,"can't lock %s: %s",LOCKFILE,strerror(errno));
+		exit(1);
+	}
+	ftruncate(fd,0);
+	sprintf(buf,"%d",(int)getpid());
+	write(fd,buf,strlen(buf)+1);
+	return 0;
+}
 
 void daemonize(const char*cmd)
 {
@@ -43,8 +80,7 @@ void daemonize(const char*cmd)
 	/**step 1**/
 	umask(0);
 	/**step 2**/
-	if(getrlimit(RLIMIT_NOFILE,&r1)<0)
-		err_quit("can't get file limit\n");
+	if(getrlimit(RLIMIT_NOFILE,&r1)<0) err_quit("can't get file limit\n");
 	/**step 3**/
 	if((pid=fork())<0) err_quit("can't fork\n");
 	else if(pid!=0) exit(0);
@@ -80,8 +116,11 @@ int main(int arg,char*argv[])
 	if((cmd=strrchr(argv[0],'/'))==NULL) cmd=argv[0];
 	else cmd++;
 	/**Become a daemon**/
-	daemonize(cmd);
+	printf("%s\n",cmd);
+	daemonize(cmd);printf("%s\n",cmd);
 	/**Make sure only one copy**/
+	syslog(LOG_ERR,"deamon already_running\n");
+	printf("fdfasdfdsafdsfsdfdsafsdf\n");
 	if(already_running())
 	{
 		syslog(LOG_ERR,"deamon already_running\n");

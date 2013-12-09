@@ -87,5 +87,21 @@ void pr_exit(int status)
 	else if(WIFSTOPPED(status))
 		printf("child stopped, signal number = %d\n",WSTOPSIG(status));
 }
+
+#define read_lock(fd,offset,whence,len) \
+			lock_reg(fd,F_SETLK,F_RDLCK,offset,whence,len)
+#define readw_lock(fd,offset,whence,len) \
+			lock_reg(fd,F_SETLKW,F_RDLCK, offset, whence, len)
+#define write_lock(fd,offset,whence,len) \
+			lock_reg(fd,F_SETLK,F_WRLCK,offset,whence,len)
+#define writew_lock(fd,offset,whence,len) \
+			lock_reg(fd,F_SETLKW,F_WRLCK,offset,whence,len)
+#define un_lock(fd,offset,whence,len) \
+			lock_reg(fd,F_SETLK,F_UNLOCK,offset,whence,len)
+#define is_read_lockable(fd,offset,whence,len) \
+			lock_test(fd,F_RDLCK,offset,whence,len) == 0
+#define is_write_lockable(fd,offset,whence,len) \
+			lock_test(fd,F_WRLCK,offset,whence,len) == 0
+#define lockfile(fd) write_lock(fd,0,SEEK_SET,0)
 #endif
 

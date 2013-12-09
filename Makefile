@@ -11,3 +11,7 @@ getenv_r: getenv_r.c
 	$(cc) $^ -o $@ $(flags)
 synchronous_signal: synchronous_signal.c
 	$(cc) $^ -o $@ $(flags)
+reReadingDeamon: reReadingDeamon.c
+	$(cc) $^ -o $@ $(flags)
+reReadingDeamon2: reReadingDeamon2.c
+	$(cc) $^ -o $@ $(flags)
