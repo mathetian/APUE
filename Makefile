@@ -16,7 +16,7 @@ reReadingDeamon: reReadingDeamon.c
 reReadingDeamon2: reReadingDeamon2.c
 	$(cc) $^ -o $@ $(flags)
 DB: process.c
-	$(cc) $^ -o db $(flags) lib_db.a
+	$(cc) -Llibd -ldb  $^ -o db $(flags) 
 static: db.c helper.c
 	gcc -Wall -c $^
 	
