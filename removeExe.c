@@ -14,7 +14,11 @@ int main(int argc, char *argv[])
 	while ((dirp = readdir(dp)) != NULL)
 	{	
 		if(access(dirp->d_name,X_OK)==0&&dirp->d_name[0]!='.')
+		{
 			printf("%d: %s\n", count++,dirp->d_name);
+			remove(dirp->d_name);
+		}
+			
 	}
 	closedir(dp);
 	return 0;
