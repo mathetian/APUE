@@ -16,6 +16,9 @@ int main()
 	{
 		pr_ids("child1");
 		signal(SIGHUP,sig_hup);
+		/**SIGTSTP: ctrl+z
+		   SIGHUP:  close terminal
+		**/
 		kill(getpid(),SIGTSTP);
 		pr_ids("child2");
 		if(read(STDIN_FILENO,&c,1)!=1)

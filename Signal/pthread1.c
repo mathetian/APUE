@@ -18,5 +18,4 @@ int main()
 	if((err=pthread_create(&ntid,NULL,thr_fn,NULL))!=0) err_quit("create error\n");
 	printtide("main thread: ");
 	sleep(1);exit(0);
-	return 0;
 }

@@ -61,5 +61,11 @@ void   err_quit(const char*);
 char  *path_alloc(int *sizep);
 void   pr_exit(int status);
 void   setfl(int fd,int flags);
+
+void TELL_WAIT(void);
+void TELL_PARENT(pid_t pid);
+void WAIT_PARENT(void);
+void TELL_CHILD(pid_t pid);
+void WAIT_CHILD(void);
 #endif
 
