@@ -5,8 +5,10 @@
 typedef int MyFunc(const char*, const struct stat *, int);
 
 MyFunc myfunc;
+
 int myftw(char*, MyFunc *);
 int dopath(MyFunc *);
+
 long nreg, ndir, nblk, nchr, nfifo, nslink, nsock, ntot;
 
 int main(int argc,char*argv[])

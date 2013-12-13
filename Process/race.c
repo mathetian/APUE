@@ -1,11 +1,11 @@
-#include "common.h"
+#include "../include/common.h"
 
 void charatatime(const char*);
 
 int main()
 {
 	pid_t pid;
-	if((pid=fork())<0) err_sys("fork error\n");
+	if((pid=fork())<0) printf("fork error\n");
 	else if(pid==0) charatatime("output from child\n");
 	else charatatime("output from parent\n");
 	exit(0);
