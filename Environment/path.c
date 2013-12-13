@@ -1,14 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <limits.h>
-#include <unistd.h>
-
-void error_quit(const char*msg)
-{
-	printf("%s",msg);
-	exit(0);
-}
+#include "common.h"
 
 void pr_sysconf(const char*, int);
 void pr_pathconf(const char*, const char*, int);

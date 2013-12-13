@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#ifndef BUFFSIZE
 #define BUFFSIZE 4096
+#endif
 
 int main()
 {
