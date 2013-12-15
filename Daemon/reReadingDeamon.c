@@ -6,8 +6,8 @@ void reread()
 {
 
 }
-int
-lockfile(int fd)
+
+int lockfile(int fd)
 {
 	struct flock fl;
 
