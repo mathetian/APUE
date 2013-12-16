@@ -17,8 +17,7 @@ int main(int argc, char *argv[])
 		{
 			printf("%d: %s\n", count++,dirp->d_name);
 			remove(dirp->d_name);
-		}
-			
+		}		
 	}
 	closedir(dp);
 	return 0;

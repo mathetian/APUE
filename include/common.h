@@ -21,6 +21,7 @@
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
+#include <sys/mman.h>
 
 #define	FILE_MODE	(S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH | S_IWUSR | S_IWOTH)
 
@@ -28,13 +29,9 @@
 #define	MAXLINE			4096
 #define	PATH_MAX_GUESS	1024
 
-#ifdef	PATH_MAX
-int	pathmax = PATH_MAX;
-#else
-int	pathmax = 0;
-#endif
+extern int pathmax;
 
-long	posix_version = 0;
+extern long	posix_version;
 
 #define read_lock(fd,offset,whence,len) \
 			lock_reg(fd,F_SETLK,F_RDLCK,offset,whence,len)
@@ -56,16 +53,38 @@ int lock_reg(int fd,int cmd,int type,off_t offset,int whence,off_t len);
 
 pid_t lock_test(int fd,int type,off_t offset,int whence,off_t len);
 
-void   err_sys(const char*);
-void   err_quit(const char*);
+extern void   err_sys(const char *fmt, ...);
+
+void   err_quit(const char *fmt, ...);
+void   err_ret(const char *fmt, ...);
+void   err_sys(const char *fmt, ...);
+void   err_exit(int error, const char *fmt, ...);
+void   err_dump(const char *fmt, ...);
+void   err_msg(const char *fmt, ...);
+void   err_quit(const char *fmt, ...);
+
+
 char  *path_alloc(int *sizep);
 void   pr_exit(int status);
 void   setfl(int fd,int flags);
 
-void TELL_WAIT(void);
-void TELL_PARENT(pid_t pid);
-void WAIT_PARENT(void);
-void TELL_CHILD(pid_t pid);
-void WAIT_CHILD(void);
+void   TELL_WAIT(void);
+void   TELL_PARENT(pid_t pid);
+void   WAIT_PARENT(void);
+void   TELL_CHILD(pid_t pid);
+void   WAIT_CHILD(void);
+
+ssize_t readn(int fd,void*ptr,size_t n);
+ssize_t writen(int fd,void*ptr,size_t n);
+void    set_fl(int fd, int flags);
+void    clr_fl(int fd, int flags);
+
+void    daemonize(const char*cmd);
+
+#ifndef true
+#define true 1
+#define false 0
+#endif
+
 #endif
 
