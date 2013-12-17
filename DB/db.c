@@ -28,8 +28,6 @@ typedef struct{
 	off_t ptrval;
 	off_t ptroff;
 	off_t chainoff;
-	off_t hashoff;
-	DBHASH nhash;
 	COUNT cnt_delok;
 	COUNT cnt_delerr;
 	COUNT cnt_fetchok;
@@ -66,7 +64,7 @@ DBHANDLE db_open(const char*pathname,int oflag,...)
 	/**Allocate a DB structure and the buffers it needs**/
 	len=strlen(pathname);
 	if((db=_db_alloc(len))==NULL) err_sys("db_open: _db_alloc error for DB\n");
-	db->nhash=NHASH_DEF;db->hashoff=HASH_OFF;
+	/*db->nhash=NHASH_DEF;db->hashoff=HASH_OFF;*/
 	strcpy(db->name,pathname);strcpy(db->name+len,".idx");
 	if(oflag&O_CREAT) 
 	{
@@ -97,9 +95,9 @@ DBHANDLE db_open(const char*pathname,int oflag,...)
 		if(statbuff.st_size==0)
 		{
 			sprintf(asciiptr,"%*d",PTR_SZ,0);hash[0]=0;
-			for(i=0;i<NHASH_DEF;i++) strcat(hash,asciiptr);
+			for(i=0;i<NHASH_DEF+1;i++) strcat(hash,asciiptr);
 			strcat(hash,"\n");i=strlen(hash);
-			if(write(db->idxfd,hash,1)!=i)
+			if(write(db->idxfd,hash,i)!=i)
 				err_sys("db_open: index file init write error\n");
 		}
 		if(un_lock(db->idxfd,0,SEEK_SET,0)<0) err_sys("un_lock error\n");
@@ -140,8 +138,7 @@ static void _db_free(DB*db)
 
 char*db_fetch(DBHANDLE h,const char*key)
 {
-	DB*db=(DB*)h;
-	char*ptr;
+	DB*db=(DB*)h;char*ptr;
 	if(_db_find_and_lock(db,key,0)<0) 
 	{
 		ptr=NULL;db->cnt_fetcherr++;
@@ -158,7 +155,7 @@ char*db_fetch(DBHANDLE h,const char*key)
 static int _db_find_and_lock(DB*db,const char*key,int writelock)
 {
 	off_t offset; off_t nextoffset;
-	db->chainoff=(_db_hash(db,key)*PTR_SZ)+db->hashoff;
+	db->chainoff=(_db_hash(db,key)*PTR_SZ)+HASH_OFF;
 	db->ptroff=db->chainoff;
 	if(writelock)
 	{
@@ -173,6 +170,7 @@ static int _db_find_and_lock(DB*db,const char*key,int writelock)
 	offset=_db_readptr(db,db->ptroff);
 	while(offset!=0)
 	{
+		/*printf("%s %d\n",key,(int)offset);*/
 		nextoffset=_db_readidx(db,offset);
 		if(strcmp(db->idxbuf,key)==0) break;
 		db->ptroff=offset;
@@ -183,27 +181,24 @@ static int _db_find_and_lock(DB*db,const char*key,int writelock)
 
 static DBHASH _db_hash(DB*db,const char*key)
 {
-	DBHASH hval=0;
-	char c;int i;
+	DBHASH hval=0;char c;int i;
 	for(i=0;(c=*key++)!=0;i++) hval+=c*i;
-	return hval%db->nhash;
+	return hval%NHASH_DEF;
 }
 
 static off_t _db_readptr(DB*db,off_t offset)
 {
 	char asciiptr[PTR_SZ+1];
-	if(lseek(db->idxfd,offset,SEEK_SET)==-1) err_sys("lseek error\n");
-	if(read(db->idxfd,asciiptr,PTR_SZ)!=PTR_SZ) err_sys("read error\n");
+	if(lseek(db->idxfd,offset,SEEK_SET)==-1) err_sys("_db_readptr: lseek error\n");
+	if(read(db->idxfd,asciiptr,PTR_SZ)!=PTR_SZ) err_sys("_db_readptr: read error\n");
 	asciiptr[PTR_SZ]=0;
 	return atol(asciiptr);
 }
 
 static off_t _db_readidx(DB*db,off_t offset)
 {
-	ssize_t i;
-	char *ptr1,*ptr2;
+	ssize_t i;char *ptr1,*ptr2;struct iovec iov[2];
 	char asciiptr[PTR_SZ+1],asciilen[IDXLEN_SZ+1];
-	struct iovec iov[2];
 	if((db->idxoff=lseek(db->idxfd,offset,offset==0?SEEK_CUR:SEEK_SET))==-1)
 		err_sys("lseek error\n");
 	iov[0].iov_base=asciiptr;iov[0].iov_len=PTR_SZ;
@@ -213,9 +208,7 @@ static off_t _db_readidx(DB*db,off_t offset)
 		if(i==0&&offset==0) return -1;
 		err_sys("readv error\n");
 	}
-	asciiptr[PTR_SZ]=0;
-	db->ptrval=atol(asciiptr);
-	asciilen[IDXLEN_SZ]=0;
+	asciiptr[PTR_SZ]=0;db->ptrval=atol(asciiptr);asciilen[IDXLEN_SZ]=0;
 	if((db->idxlen=atoi(asciilen))<IDXLEN_MIN||db->idxlen>IDXLEN_MAX)
 		err_sys("invalid length\n");
 	/**Now read the actual index record. We read it into the key buffer**/
@@ -230,6 +223,7 @@ static off_t _db_readidx(DB*db,off_t offset)
 	*ptr1++=0;
 	if((ptr2=strchr(ptr1,SEP))==NULL)
 		err_sys("missing second seperator\n");
+	*ptr2++=0;
 	if(strchr(ptr2,SEP)!=NULL) err_sys("too many seperator\n");
 	if((db->datoff=atol(ptr1))<0) err_sys("starting offset < 0\n");
 	if((db->datlen=atol(ptr2))<0) err_sys("invalid length\n");
@@ -327,7 +321,7 @@ static void _db_writeidx(DB*db,const char*key,off_t offset,int whence,off_t ptrv
 	/**lock or not**/
 	if(whence==SEEK_END)
 	{
-		if(writew_lock(db->idxfd,((db->nhash+1)*PTR_SZ)+1,SEEK_SET,0)<0)
+		if(writew_lock(db->idxfd,((NHASH_DEF+1)*PTR_SZ)+1,SEEK_SET,0)<0)
 			err_sys("_db_writeidx: writew_lock error\n");
 	}
 	/**Position the index file and record the offset**/
@@ -339,7 +333,7 @@ static void _db_writeidx(DB*db,const char*key,off_t offset,int whence,off_t ptrv
 		err_sys("_db_writeidx: writev error\n");
 	if(whence==SEEK_END)
 	{
-		if(un_lock(db->idxfd,((db->nhash+1)*PTR_SZ)+1,SEEK_SET,0)<0)
+		if(un_lock(db->idxfd,((NHASH_DEF+1)*PTR_SZ)+1,SEEK_SET,0)<0)
 			err_sys("_db_writeidx: un_lock error\n");
 	}
 }
@@ -380,6 +374,8 @@ int db_store(DBHANDLE h,const char*key,const char*data,int flag)
 		{
 			_db_writedat(db,data,0,SEEK_END);
 			_db_writeidx(db,key,0,SEEK_END,ptrval);
+			_db_writeptr(db,db->chainoff,db->idxoff);
+			db->cnt_stor1++;
 		}
 		else
 		{
@@ -430,22 +426,18 @@ static int _db_findfree(DB*db,int keylen,int datlen)
 	if(writew_lock(db->idxfd,FREE_OFF,SEEK_SET,1)<0)
 		err_sys("_db_findfree: writew_lock error\n");
 	/**Read the free list pointer**/
-	saveoffset=FREE_OFF;
-	offset=_db_readptr(db,saveoffset);
+	saveoffset=FREE_OFF;offset=_db_readptr(db,saveoffset);
 	while(offset!=0)
 	{
 		nextoffset=_db_readidx(db,offset);
-		if(strlen(db->idxbuf)==keylen&&db->datlen==datlen)
-			break;
-		saveoffset=offset;
-		offset=nextoffset;
+		if(strlen(db->idxbuf)==keylen&&db->datlen==datlen) break;
+		saveoffset=offset;offset=nextoffset;
 	}
 	if(offset==0) rc=-1;
 	else
 	{
 		/**Found a free record**/
-		_db_writeptr(db,saveoffset,db->ptrval);
-		rc=0;
+		_db_writeptr(db,saveoffset,db->ptrval);rc=0;
 	}
 	/**Unlock the free list**/
 	if(un_lock(db->idxfd,FREE_OFF,SEEK_SET,1)<0)
@@ -457,7 +449,8 @@ static int _db_findfree(DB*db,int keylen,int datlen)
 void db_rewind(DBHANDLE h)
 {
 	DB*db=(DB*)h;off_t offset;
-	offset=(db->nhash+1)*PTR_SZ;
+	offset=(NHASH_DEF+1)*PTR_SZ;printf("%d\n",(int)offset);
+	if(db->idxfd<0) printf("error file id\n");
 	if((db->idxoff=lseek(db->idxfd,offset+1,SEEK_SET))==-1)
 		err_sys("db_rewind: lseek error\n");
 }
@@ -469,15 +462,14 @@ char* db_nextrec(DBHANDLE h,char*key)
 	if(readw_lock(db->idxfd,FREE_OFF,SEEK_SET,1)<0)
 		err_sys("db_nextrec: readw error\n");
 	do{
-		/**Read**/
-		if(_db_readidx(db,0)<0)
-		{
-			ptr=NULL;goto doreturn;
-		}
-		/**Check if key is all blank**/
+		/**Read**//**Check if key is all blank**/
+		if(_db_readidx(db,0)<0) 
+		{ ptr=NULL;goto doreturn; }
 		ptr=db->idxbuf;
 		while((c=*ptr++)!=0&&c==SPACE);
 	}while(c==0);
+	if (key != NULL) strcpy(key,db->idxbuf);
+	ptr = _db_readdat(db); db->cnt_nextrec++;
 doreturn:
 	if(un_lock(db->idxfd,FREE_OFF,SEEK_SET,1)<0)
 		err_sys("db_nextrec: un_lock error\n");

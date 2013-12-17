@@ -53,8 +53,6 @@ int lock_reg(int fd,int cmd,int type,off_t offset,int whence,off_t len);
 
 pid_t lock_test(int fd,int type,off_t offset,int whence,off_t len);
 
-extern void   err_sys(const char *fmt, ...);
-
 void   err_quit(const char *fmt, ...);
 void   err_ret(const char *fmt, ...);
 void   err_sys(const char *fmt, ...);
